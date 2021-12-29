@@ -51,17 +51,18 @@ namespace Fenris
         static const int ReverbDiffuse = 37;
         static const int ReverbBits = 38;
         static const int ReverbMix = 39;
-        static const int ReverbSize = 40;
-        static const int ReverbLow = 41;
-        static const int ReverbHigh	= 42;
+        static const int ReverbSizeEarly = 40;
+        static const int ReverbSizeLate = 41;
+        static const int ReverbModulate = 42;
+        static const int ReverbTone = 43;
         
-        static const int MasterInput = 43;
-        static const int MasterPan = 44;
-        static const int MasterInGain = 45;
-        static const int MasterOutGain = 46;
+        static const int MasterInput = 44;
+        static const int MasterPan = 45;
+        static const int MasterInGain = 46;
+        static const int MasterOutGain = 47;
 
-        static const int Active = 47;
+        static const int Active = 48;
 
-        static const int COUNT = 48;
+        static const int COUNT = 49;
     };
 }

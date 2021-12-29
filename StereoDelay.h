@@ -14,8 +14,8 @@ namespace Fenris
         Polygons::Biquad lpR;
         Polygons::Biquad hpL;
         Polygons::Biquad hpR;
-        Polygons::ModulatedDelay<FS_MAX, BUFFER_SIZE> delayLeft;
-        Polygons::ModulatedDelay<FS_MAX, BUFFER_SIZE> delayRight;
+        Polygons::ModulatedDelay<FS_MAX/2, BUFFER_SIZE> delayLeft;
+        Polygons::ModulatedDelay<FS_MAX/2, BUFFER_SIZE> delayRight;
     public:
         float Feedback;
         float FeedbackL;
@@ -41,11 +41,6 @@ namespace Fenris
 
         void SetParameter(int paramId, double value)
         {
-            Serial.print("Setting param ");
-            Serial.print(paramId);
-            Serial.print(" to ");
-            Serial.println(value);
-
             if (paramId == Parameter::DelayTimeL)
             {
                 delayLeft.SampleDelay = value * SAMPLERATE * 0.001; // ms to samples
@@ -89,8 +84,8 @@ namespace Fenris
             lpR.Update();
             hpL.Update();
             hpR.Update();
-            XFeed = Clip(XFeed, 0.0, 1.0);
-            MixAmount = Clip(MixAmount, 0.0, 1.0);
+            XFeed = ClipF(XFeed, 0.0, 1.0);
+            MixAmount = ClipF(MixAmount, 0.0, 1.0);
         }
 
         void Process(float** inputs, float** outputs, int bufSize)

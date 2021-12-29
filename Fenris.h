@@ -66,9 +66,10 @@ namespace Fenris
         ParameterNames[Parameter::ReverbDiffuse] = "Diffuse";
         ParameterNames[Parameter::ReverbBits] = "Bits";
         ParameterNames[Parameter::ReverbMix] = "Mix";
-        ParameterNames[Parameter::ReverbSize] = "Size";
-        ParameterNames[Parameter::ReverbLow] = "Low";
-        ParameterNames[Parameter::ReverbHigh] = "High";
+        ParameterNames[Parameter::ReverbSizeEarly] = "Size Early";
+        ParameterNames[Parameter::ReverbSizeLate] = "Size Late";
+        ParameterNames[Parameter::ReverbModulate] = "Modulate";
+        ParameterNames[Parameter::ReverbTone] = "High";
         ParameterNames[Parameter::MasterInput] = "Input";
         ParameterNames[Parameter::MasterPan] = "Pan";
         ParameterNames[Parameter::MasterInGain] = "Input Gain";
@@ -124,9 +125,10 @@ namespace Fenris
         os.Register(Parameter::ReverbDiffuse,       1023, Polygons::ControlMode::Encoded, 48+1, 4);
         os.Register(Parameter::ReverbBits,          1023, Polygons::ControlMode::Encoded, 48+2, 4);
         os.Register(Parameter::ReverbMix,           1023, Polygons::ControlMode::Encoded, 48+3, 4);
-        os.Register(Parameter::ReverbSize,          1023, Polygons::ControlMode::Encoded, 48+4, 4);
-        os.Register(Parameter::ReverbLow,           1023, Polygons::ControlMode::Encoded, 48+5, 4);
-        os.Register(Parameter::ReverbHigh,          1023, Polygons::ControlMode::Encoded, 48+6, 4);
+        os.Register(Parameter::ReverbSizeEarly,     1023, Polygons::ControlMode::Encoded, 48+4, 4);
+        os.Register(Parameter::ReverbSizeLate,      1023, Polygons::ControlMode::Encoded, 48+5, 4);
+        os.Register(Parameter::ReverbModulate,      1023, Polygons::ControlMode::Encoded, 48+6, 4);
+        os.Register(Parameter::ReverbTone,          1023, Polygons::ControlMode::Encoded, 48+7, 4);
 
         os.Register(Parameter::MasterInput,         1023, Polygons::ControlMode::Encoded, 56+0, 4);
         os.Register(Parameter::MasterPan,           1023, Polygons::ControlMode::Encoded, 56+1, 4);
@@ -187,6 +189,14 @@ namespace Fenris
                 sprintf(dest, "%dHz", (int)val);
             else
                 sprintf(dest, "%.1fKHz", val*0.001);
+        }
+        else if (paramId == Parameter::ReverbDecay)
+        {
+            sprintf(dest, "%.1fs", val);
+        }
+        else if (paramId == Parameter::ReverbDiffuse || paramId == Parameter::ReverbSizeEarly || paramId == Parameter::ReverbSizeLate || paramId == Parameter::ReverbTone || paramId == Parameter::ReverbMix || paramId == Parameter::ReverbModulate)
+        {
+            sprintf(dest, "%d%%", (int)(val*100));
         }
         else
         {
@@ -267,7 +277,7 @@ namespace Fenris
     inline void start()
     {
         Serial.println("Starting up - waiting for controller signal...");
-        os.waitForControllerSignal();
+        //os.waitForControllerSignal();
         setNames();
         RegisterParams();
 
