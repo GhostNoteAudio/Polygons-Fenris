@@ -35,7 +35,7 @@ namespace Fenris
         static const int LimiterThres = 24;
         static const int LimiterBoost = 25;
         static const int LimiterRelease = 26;
-        static const int LimiterRate = 27;
+        static const int LimiterRatio = 27;
 
         static const int EnhancerAmount = 28;
 

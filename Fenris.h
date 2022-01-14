@@ -3,6 +3,8 @@
 #include "Polygons.h"
 #include "ParameterFenris.h"
 #include "ControllerFenris.h"
+#include "blocks/Limiter.h"
+#include "Utils.h"
 
 namespace Fenris
 {
@@ -53,7 +55,7 @@ namespace Fenris
         ParameterNames[Parameter::LimiterThres] = "Threshold";
         ParameterNames[Parameter::LimiterBoost] = "Boost";
         ParameterNames[Parameter::LimiterRelease] = "Release";
-        ParameterNames[Parameter::LimiterRate] = "Rate";
+        ParameterNames[Parameter::LimiterRatio] = "Ratio";
         ParameterNames[Parameter::EnhancerAmount] = "Amount";
         ParameterNames[Parameter::DelayTimeL] = "Len Left";
         ParameterNames[Parameter::DelayTimeR] = "Len Right";
@@ -109,7 +111,7 @@ namespace Fenris
         os.Register(Parameter::LimiterThres,        1023, Polygons::ControlMode::Encoded, 24+0, 4);
         os.Register(Parameter::LimiterBoost,        1023, Polygons::ControlMode::Encoded, 24+1, 4);
         os.Register(Parameter::LimiterRelease,      1023, Polygons::ControlMode::Encoded, 24+2, 4);
-        os.Register(Parameter::LimiterRate,         1023, Polygons::ControlMode::Encoded, 24+3, 4);
+        os.Register(Parameter::LimiterRatio,        1023, Polygons::ControlMode::Encoded, 24+3, 4);
 
         os.Register(Parameter::EnhancerAmount,      1023, Polygons::ControlMode::Encoded, 32+0, 4);
 
@@ -175,6 +177,10 @@ namespace Fenris
         {
             strcpy(dest, "");
         }
+        else if (paramId == Parameter::EnhancerAmount)
+        {
+            sprintf(dest, "%d%%", (int)(val*100));
+        }
         else if (paramId == Parameter::DelayTimeL || paramId == Parameter::DelayTimeR)
         {
             sprintf(dest, "%.0f ms", val);
@@ -200,7 +206,7 @@ namespace Fenris
         }
         else
         {
-            sprintf(dest, "%.0f", val);
+            sprintf(dest, "%.2f", val);
         }
     }
 
@@ -274,6 +280,33 @@ namespace Fenris
     {
     }
 
+    inline void drawLimiter()
+    {
+        if (os.SelectedPage == 3) // Limiter page, draw indicators
+        {
+            auto canvas = getCanvas();
+            canvas->drawRect(1, 43, 100, 8, 1);
+            canvas->drawRect(128+1, 43, 100, 8, 1);
+
+            float gainFrac = max((Limiter::InputGainDb+40.0)/40.0, 0.0);
+            float reductionFrac = min(Limiter::GainReductionDb/20.0,1);
+
+            canvas->fillRect(1, 43, gainFrac * 100, 8, 1);
+            canvas->fillRect(128+1, 43, reductionFrac * 100, 8, 1);
+
+            canvas->setTextColor(1);
+            canvas->setCursor(1, 40);
+            canvas->println("In Gain");
+            canvas->setCursor(65, 40);
+            canvas->println(Limiter::InputGainDb, 1);
+
+            canvas->setCursor(129, 40);
+            canvas->println("Reduction");
+            canvas->setCursor(193, 40);
+            canvas->println(Limiter::GainReductionDb, 1);
+        }
+    }
+
     inline void start()
     {
         Serial.println("Starting up - waiting for controller signal...");
@@ -288,6 +321,7 @@ namespace Fenris
 
         os.HandleUpdateCallback = handleUpdate;
         os.SetParameterCallback = setParameter;
+        os.CustomDrawCallback = drawLimiter;
         os.PageCount = 8;
         os.menu.getPageName = getPageName;
         os.menu.getParameterName = getParameterName;
