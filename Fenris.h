@@ -177,7 +177,31 @@ namespace Fenris
         {
             strcpy(dest, "");
         }
+        else if (paramId == Parameter::EqLowF || paramId == Parameter::EqMid1F)
+        {
+            sprintf(dest, "%dHz", (int)(val));
+        }
+        else if (paramId == Parameter::EqHighF || paramId == Parameter::EqMid2F)
+        {
+            sprintf(dest, "%.1fKHz", (val/1000));
+        }
+        else if (paramId == Parameter::EqLowG || paramId == Parameter::EqHighG || paramId == Parameter::EqMid1G || paramId == Parameter::EqMid2G)
+        {
+            sprintf(dest, "%.1fdB", val);
+        }
         else if (paramId == Parameter::EnhancerAmount)
+        {
+            sprintf(dest, "%d%%", (int)(val*100));
+        }
+        else if (paramId == Parameter::LimiterThres || paramId == Parameter::LimiterBoost)
+        {
+            sprintf(dest, "%.1fdB", val);
+        }
+        else if (paramId == Parameter::LimiterRelease)
+        {
+            sprintf(dest, "%dms", (int)val);
+        }
+        else if (paramId == Parameter::LimiterRatio)
         {
             sprintf(dest, "%d%%", (int)(val*100));
         }
@@ -203,6 +227,19 @@ namespace Fenris
         else if (paramId == Parameter::ReverbDiffuse || paramId == Parameter::ReverbSizeEarly || paramId == Parameter::ReverbSizeLate || paramId == Parameter::ReverbTone || paramId == Parameter::ReverbMix || paramId == Parameter::ReverbModulate)
         {
             sprintf(dest, "%d%%", (int)(val*100));
+        }
+        else if (paramId == Parameter::MasterInGain || paramId == Parameter::MasterOutGain)
+        {
+            sprintf(dest, "%.1fdB", val);
+        }
+        else if (paramId == Parameter::MasterInput)
+        {
+            if (val == 0)
+                strcpy(dest, "Left");
+            if (val == 1)
+                strcpy(dest, "Right");
+            if (val == 2)
+                strcpy(dest, "Summed");
         }
         else
         {

@@ -9,10 +9,19 @@
 #include "Utils.h"
 #include "ZzzzRev.h"
 #include "Enhancer.h"
+#include "Eq.h"
 #include "blocks/Limiter.h"
+#include "Shaper.h"
 
 namespace Fenris
 {
+	enum class InputMode
+	{
+		Left = 0,
+		Right,
+		Sum
+	};
+
 	class Controller
 	{
 	private:
@@ -22,15 +31,32 @@ namespace Fenris
 		StereoDelay Delay;
 		Enhancer Enhance;
 		Polygons::Limiter Limiter;
+		Eq Equalizer;
+		Shaper Shape;
 
 		int samplerate;
+		InputMode inputMode;
+		float inGain;
+		float outGain;
+		float pan;
 
 		uint16_t parameters[Parameter::COUNT];
 
 	public:
-		Controller(int samplerate) : CabLeft(samplerate), CabRight(samplerate), Reverb(samplerate), Enhance(samplerate), Limiter(samplerate)
+		Controller(int samplerate) : 
+			CabLeft(samplerate), 
+			CabRight(samplerate), 
+			Reverb(samplerate), 
+			Enhance(samplerate), 
+			Limiter(samplerate),
+			Equalizer(samplerate),
+			Shape(samplerate)
 		{
-			this->samplerate = samplerate;			
+			this->samplerate = samplerate;
+			inputMode = InputMode::Left;
+			inGain = 1.0;
+			outGain = 1.0;
+			pan = 0.5;
 		}
 
 		void Init()
@@ -55,6 +81,15 @@ namespace Fenris
 		{
 			switch (param)
 			{
+				case Parameter::ShaperGain:                	return P(param);
+				case Parameter::ShaperCurve:               	return (int)(P(param)*1.999);
+				case Parameter::ShaperPresence:            	return P(param);
+				case Parameter::ShaperDepth:            	return P(param);
+				case Parameter::ShaperBiasMod:            	return P(param);
+				case Parameter::ShaperBiasSpeed:           	return P(param);
+				case Parameter::ShaperGateThres:           	return -80 + P(param)*80;
+				case Parameter::ShaperGateRel:            	return P(param) * 500;
+
                 case Parameter::CabIrL:                     return parameters[param];
                 case Parameter::CabIrR:                   	return parameters[param];
 				case Parameter::CabScaleL:                	return 50 + P(param);
@@ -64,10 +99,21 @@ namespace Fenris
 				case Parameter::CabGainL:                	return -30 + P(param) * 60;
 				case Parameter::CabGainR:                	return -30 + P(param) * 60;
 
+				case Parameter::EqLowF:                  	return 40 + P(param) * 460;
+				case Parameter::EqHighF:                  	return 2000 + P(param) * 14000;
+				case Parameter::EqMid1F:                  	return 300 + P(param) * 1700;
+				case Parameter::EqMid2F:                  	return 1000 + P(param) * 4000;
+				case Parameter::EqLowG:                  	return -12 + P(param) * 24;
+				case Parameter::EqHighG:                  	return -12 + P(param) * 24;
+				case Parameter::EqMid1G:                  	return -12 + P(param) * 24;
+				case Parameter::EqMid2G:                  	return -12 + P(param) * 24;
+
 				case Parameter::LimiterThres:             	return -P(param) * 12;
 				case Parameter::LimiterBoost:              	return P(param) * 30;
-				case Parameter::LimiterRelease:            	return P(param) * 100;
+				case Parameter::LimiterRelease:            	return (int)(P(param) * 100);
 				case Parameter::LimiterRatio:             	return P(param);
+
+				case Parameter::EnhancerAmount:				return P(param);
 
 				case Parameter::DelayTimeL:					return Polygons::Response2Dec(P(param)) * 499.9;
 				case Parameter::DelayTimeR:					return Polygons::Response2Dec(P(param)) * 499.9;
@@ -86,7 +132,10 @@ namespace Fenris
 				case Parameter::ReverbModulate:				return P(param);
 				case Parameter::ReverbTone:					return P(param);
 
-				case Parameter::EnhancerAmount:				return P(param);
+				case Parameter::MasterInput:				return (int)(P(param) * 2.999);
+				case Parameter::MasterPan:					return P(param);
+				case Parameter::MasterInGain:				return -20 + P(param) * 40;
+				case Parameter::MasterOutGain:				return -20 + P(param) * 40;
 			}
 			return parameters[param];
 		}
@@ -101,6 +150,17 @@ namespace Fenris
 			Reverb.SetParameters(param, scaled);
 			Enhance.SetParameter(param, scaled);
 			Limiter.SetParameter(param-Parameter::LimiterThres, scaled);
+			Equalizer.SetParameter(param, scaled);
+			Shape.SetParameter(param, scaled);
+
+			if (param == Parameter::MasterInput)
+				inputMode = (InputMode)(int)scaled;
+			if (param == Parameter::MasterPan)
+				pan = scaled;
+			if (param == Parameter::MasterInGain)
+				inGain = DB2gain(scaled);
+			if (param == Parameter::MasterOutGain)
+				outGain = DB2gain(scaled);
 		}
 
 		void ClearBuffers()
@@ -109,8 +169,25 @@ namespace Fenris
 
 		void Process(float** inputs, float** outputs, int bufferSize)
 		{
-			//auto tempL = Buffers::Request();
-			//auto tempR = Buffers::Request();
+			auto tempA = Buffers::Request();
+			auto tempB = Buffers::Request();
+			auto bufA = tempA.Ptr;
+			auto bufB = tempB.Ptr;
+
+			float* input = 0;
+			if (inputMode == InputMode::Left)
+				input = inputs[0];
+			else if (inputMode == InputMode::Right)
+				input = inputs[1];
+			else
+			{
+				Copy(bufA, inputs[0], bufferSize);
+				Mix(bufA, inputs[1], 1.0, bufferSize);
+				input = bufA;
+			}
+
+			Gain(input, inGain, bufferSize);
+
 			//float* temps[2] = {tempL.Ptr, tempR.Ptr};
 
 			//auto tempL2 = Buffers::Request();
@@ -124,8 +201,12 @@ namespace Fenris
 			//Delay.Process(temps, temps2, bufferSize);
 			//Reverb.Process(temps, outputs, bufferSize);
 			//Enhance.Process(temps, outputs, bufferSize);
-			Limiter.Process(inputs[0], outputs[0], bufferSize);
+			//Limiter.Process(inputs[0], outputs[0], bufferSize);
+			//Equalizer.Process(inputs[0], outputs[0], bufferSize);
+			Shape.Process(input, outputs[0], bufferSize);
 			Copy(outputs[1], outputs[0], bufferSize);
+			Gain(outputs[0], outGain, bufferSize);
+			Gain(outputs[1], outGain, bufferSize);
 		}
 		
 	private:
